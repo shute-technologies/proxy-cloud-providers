@@ -1,1 +1,1 @@
-# cloud-proxy-google-drive
+# cloud-proxy-generic-drive
