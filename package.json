@@ -1,6 +1,6 @@
 {
   "name": "shute-technologies.proxy-cloud-providers",
-  "version": "0.0.3",
+  "version": "0.0.3001",
   "license": "MIT",
   "private": false,
   "main": "lib/index.js",
@@ -16,7 +16,6 @@
     "url": "https://github.com/shute-technologies/proxy-cloud-providers"
   },
   "devDependencies": {
-    "@types/gapi": "0.0.39",
     "@types/jquery": "^3.5.16",
     "@types/node": "^18.16.3",
     "tslint": "^6.1.3",

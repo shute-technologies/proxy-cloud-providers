@@ -1,7 +1,7 @@
 import { ICallback1 } from "shute-technologies.common-and-utils";
 
 export interface TIGoogleApi {
-  load(apiName: string, callback: gapi.CallbackOrConfig): void;
+  load(apiName: string): void;
 
   readonly auth2: TIGoogleApiAuth;
   readonly client: TIGoogleApiClient;
