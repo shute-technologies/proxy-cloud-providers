@@ -16,7 +16,7 @@ export abstract class GCSBaseRequest {
 
   constructor(private readonly _abstractGCUserDrive: GoogleDriveProxy) {
     this._uid = STUtils.createGuid();
-    this._googleApi = _abstractGCUserDrive.googleApi;
+    // this._googleApi = _abstractGCUserDrive.googleApi;
   }
 
   abstract request(...args): void;
