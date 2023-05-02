@@ -40,7 +40,9 @@ export class GoogleDriveProxy {
   constructor() {
     this._requests = [];
     this._isSignedIn = false;
+  }
 
+  loadClient(): void {
     this._googleApi = gapi as any;
     this._googleApi.load('client:auth2', () => this.initializeClient());
 
