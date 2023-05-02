@@ -32,7 +32,10 @@ export class GoogleDriveProxy {
   // callbacks
   callbackOnSignedIn: ICallback1<boolean>;
 
+  get isSignedIn(): boolean { return this._isSignedIn; }
   get googleApi(): TIGoogleApi { return this._googleApi; }
+  get userPersonalInfo(): GCSRequest_GPIResponseUser { return this._userPersonalInfo; }
+  get userStorageQuota(): GCSRequest_GPIResponseStorageQuota { return this._userStorageQuota; }
 
   constructor() {
     this._requests = [];
