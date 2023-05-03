@@ -13,13 +13,13 @@ export class GCSRequest_ClientInitialize extends GCSBaseRequest {
     super(_gcsUserDrive);
   }
 
-  request(discoveryDocs: string[], clientId: string, scope: string, onCallbackResponse: ICallback2<boolean, GCSRRArgClientInitialize>): void {
+  request(discoveryDocs: string[], apiKey: string, scope: string, onCallbackResponse: ICallback2<boolean, GCSRRArgClientInitialize>): void {
     this._onCallbackResponse = onCallbackResponse;
 
     this._googleApi.client
       .init({
         discoveryDocs: discoveryDocs,
-        clientId: clientId,
+        apiKey: apiKey,
         scope: scope,
       })
       .then((response) => {

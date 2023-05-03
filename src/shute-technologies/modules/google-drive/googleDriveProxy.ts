@@ -1,6 +1,7 @@
 import { GCSRequest_ClientInitialize } from './requests/gcsRequest_ClientInitialize';
 import { GCSBaseRequest } from './gcsBaseRequest';
 import { TIGoogleApi } from './typings-interfaces/ti-google-api';
+import { TIGOATokenClient, TIGoogleOAuth2 } from './typings-interfaces/ti-google-oauth2';
 import { GCSConfig } from './config/gcsConfig';
 import { GCSRequest_GetPersonalInfo, GCSRequest_GPIResponse, GCSRequest_GPIResponseUser, GCSRequest_GPIResponseStorageQuota } from './requests/gcsRequest_GetPersonalInfo';
 import { GCSRequest_ExistsFileByName, GCSRequest_EFBNResponse } from './requests/gcsRequest_ExistsFileByName';
@@ -21,11 +22,20 @@ import { GCSRequest_DeleteFile, GCSRequest_DeleteFileResponse } from './requests
 import { PCPDebugConsole } from '../../helpers/pcpConsole';
 import { ICallback1, ICallback2, ICallback3, ICallback4 } from 'shute-technologies.common-and-utils';
 
+declare const google;
+
 export class GoogleDriveProxy {
   private _googleApi: TIGoogleApi;
-  private _requests: Array<GCSBaseRequest>;
-  private _isSignedIn: boolean;
+  private _googleOAuth2: TIGoogleOAuth2;
 
+  private _appClientId: string;
+  private _appApiKey: string;
+  private _appScopes: string;
+  private _appDiscoveryDocs: string[];
+  private _isSignedIn: boolean;
+  private _tokenClient: TIGOATokenClient;
+
+  private _requests: Array<GCSBaseRequest>;
   private _userPersonalInfo: GCSRequest_GPIResponseUser;
   private _userStorageQuota: GCSRequest_GPIResponseStorageQuota;
 
@@ -42,7 +52,22 @@ export class GoogleDriveProxy {
     this._isSignedIn = false;
   }
 
-  loadClient(): void {
+  loadClient(clientId: string, apiKey: string, scopes: string, appDiscoveryDocs: string[]): void {
+    this._appClientId = clientId;
+    this._appApiKey = apiKey;
+    this._appScopes = scopes;
+    this._appDiscoveryDocs = appDiscoveryDocs;
+
+    // reference the Google OAuth2 library
+    this._googleOAuth2 = google.accounts.oauth2;
+
+    this._tokenClient = this._googleOAuth2.initTokenClient({
+      client_id: this._appClientId,
+      scope: this._appScopes,
+      callback: '', // defined later
+    });
+
+    // reference the GAPI library
     this._googleApi = gapi as any;
     this._googleApi.load('client:auth2', () => this.initializeClient());
 
@@ -53,12 +78,30 @@ export class GoogleDriveProxy {
     PCPDebugConsole.log(this, 'InitializeClient> Ok.');
 
     const requests = new GCSRequest_ClientInitialize(this);
-    requests.request(GCSConfig.DISCOVERY_DOCS, GCSConfig.CLIENT_ID, GCSConfig.SCOPES, (success: boolean, result) => {
+    requests.request(this._appDiscoveryDocs, this._appApiKey, this._appScopes, (success: boolean, result) => {
       if (success) {
-        // Listen for sign-in state changes. [only listen]
-        this._googleApi.auth2.getAuthInstance().isSignedIn.listen((isSignedIn: boolean) => this.updateSignInStatus(isSignedIn));
-        // Handle the initial sign-in state.
-        this.updateSignInStatus(this._googleApi.auth2.getAuthInstance().isSignedIn.get() as any);
+        this._tokenClient.callback = async (resp) => {
+          if (!!resp.error) {
+            PCPDebugConsole.error(this, 'initializeClient::tokenClient> {0}', resp.error);
+            throw (resp);
+          } else {
+            PCPDebugConsole.log(this, 'initializeClient::tokenClient> Ok');
+
+            // Listen for sign-in state changes. [only listen]
+            this._googleApi.auth2.getAuthInstance().isSignedIn.listen((isSignedIn: boolean) => this.updateSignInStatus(isSignedIn));
+            // Handle the initial sign-in state.
+            this.updateSignInStatus(this._googleApi.auth2.getAuthInstance().isSignedIn.get() as any);
+          }
+        };
+
+        if (this._googleApi.client.getToken() === null) {
+          // Prompt the user to select a Google Account and ask for consent to share their data
+          // when establishing a new session.
+          this._tokenClient.requestAccessToken({prompt: 'consent'});
+        } else {
+          // Skip display of account chooser and consent dialog for an existing session.
+          this._tokenClient.requestAccessToken({prompt: ''});
+        }
       } else {
         PCPDebugConsole.error(this, 'initializeClient> {0}', result.errorReason.details);
       }

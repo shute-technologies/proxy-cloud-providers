@@ -33,8 +33,8 @@ export interface TIGoogleApiClient {
     hosted_domain?: string;
   }): Promise<void>;
   request(arg: TIGoogleApiClientRequestArg): TIGoogleApiRequest;
-
   drive: TIGoogleApiDrive;
+  getToken(): unknown;
 }
 
 export interface TIGoogleApiClientRequestArg {

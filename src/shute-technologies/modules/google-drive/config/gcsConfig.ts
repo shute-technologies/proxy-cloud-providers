@@ -3,13 +3,6 @@ import { TIGoogleApiFilesObject } from '../typings-interfaces/ti-google-api';
 
 export class GCSConfig {
   
-  // Client ID and API key from the Developer Console
-  static readonly CLIENT_ID = '275475823924-sncevj5nbqmaim2ni90vuj7pf689jige.apps.googleusercontent.com';
-  // Array of API discovery doc URLs for APIs used by the quickstart
-  static readonly DISCOVERY_DOCS = ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"];
-  // Authorization scopes required by the API; multiple scopes can be included, separated by spaces.
-  static readonly SCOPES = 'https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/drive.file';
-
   // Search for Files: Queries
   static SFFQuery_AllFoldersInFolder (folderId: string) {
     return {

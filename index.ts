@@ -18,5 +18,6 @@ export * from './src/shute-technologies/modules/google-drive/requests/gcsRequest
 export * from './src/shute-technologies/modules/google-drive/requests/gcsRequest_UpdateFileFromJSObject'
 export * from './src/shute-technologies/modules/google-drive/requests/gcsRequest_UploadImage'
 export * from './src/shute-technologies/modules/google-drive/typings-interfaces/ti-google-api'
+export * from './src/shute-technologies/modules/google-drive/typings-interfaces/ti-google-oauth2'
 export * from './src/shute-technologies/modules/google-drive/gcsBaseRequest'
 export * from './src/shute-technologies/modules/google-drive/googleDriveProxy'
