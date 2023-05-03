@@ -1,7 +1,7 @@
 import { GCSRequest_ClientInitialize } from './requests/gcsRequest_ClientInitialize';
 import { GCSBaseRequest } from './gcsBaseRequest';
 import { TIGoogleApi } from './typings-interfaces/ti-google-api';
-import { TIGOATokenClient, TIGoogleOAuth2 } from './typings-interfaces/ti-google-oauth2';
+import { TIGOATokenClient, TIGOATokenResponse, TIGoogleOAuth2 } from './typings-interfaces/ti-google-oauth2';
 import { GCSConfig } from './config/gcsConfig';
 import { GCSRequest_GetPersonalInfo, GCSRequest_GPIResponse, GCSRequest_GPIResponseUser, GCSRequest_GPIResponseStorageQuota } from './requests/gcsRequest_GetPersonalInfo';
 import { GCSRequest_ExistsFileByName, GCSRequest_EFBNResponse } from './requests/gcsRequest_ExistsFileByName';
@@ -34,6 +34,7 @@ export class GoogleDriveProxy {
   private _appDiscoveryDocs: string[];
   private _isSignedIn: boolean;
   private _tokenClient: TIGOATokenClient;
+  private _userToken: TIGOATokenResponse;
 
   private _requests: Array<GCSBaseRequest>;
   private _userPersonalInfo: GCSRequest_GPIResponseUser;
@@ -80,19 +81,7 @@ export class GoogleDriveProxy {
     const requests = new GCSRequest_ClientInitialize(this);
     requests.request(this._appDiscoveryDocs, this._appApiKey, this._appScopes, (success: boolean, result) => {
       if (success) {
-        this._tokenClient.callback = async (resp) => {
-          if (resp.hasOwnProperty('error')) {
-            PCPDebugConsole.error(this, 'initializeClient::tokenClient> {0}', resp.error);
-            throw (resp);
-          } else {
-            PCPDebugConsole.log(this, 'initializeClient::tokenClient> Ok');
-
-            // Listen for sign-in state changes. [only listen]
-            this._googleApi.auth2.getAuthInstance().isSignedIn.listen((isSignedIn: boolean) => this.updateSignInStatus(isSignedIn));
-            // Handle the initial sign-in state.
-            this.updateSignInStatus(this._googleApi.auth2.getAuthInstance().isSignedIn.get() as any);
-          }
-        };
+        this._tokenClient.callback = async (resp) => this.onTokenClient(resp);
 
         if (this._googleApi.client.getToken() === null) {
           // Prompt the user to select a Google Account and ask for consent to share their data
@@ -109,6 +98,22 @@ export class GoogleDriveProxy {
 
     // Add it to the Request
     this._requests.push(requests);
+  }
+
+  private onTokenClient(resp: TIGOATokenResponse) {
+    if (resp.hasOwnProperty('error')) {
+      PCPDebugConsole.error(this, 'initializeClient::tokenClient> {0}', resp.error);
+      throw (resp);
+    } else {
+      this._userToken = resp;
+
+      PCPDebugConsole.log(this, 'initializeClient::tokenClient> Ok');
+
+      // Listen for sign-in state changes. [only listen]
+      // this._googleApi.auth2.getAuthInstance().isSignedIn.listen((isSignedIn: boolean) => this.updateSignInStatus(isSignedIn));
+      // Handle the initial sign-in state.
+      this.updateSignInStatus(true);
+    }
   }
 
   clearRequest(request: GCSBaseRequest): void {

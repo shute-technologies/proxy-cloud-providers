@@ -8,8 +8,18 @@ export interface TIGOARequestAccessToken {
   prompt: string;
 }
 
+export interface TIGOATokenResponse {
+  access_token: string;
+  authuser: string;
+  expires_in: number;
+  prompt: string;
+  scope: string;
+  token_type: string;
+  error;
+}
+
 export interface TIGOATokenClient {
-  callback: (resp) => Promise<void>;
+  callback: (resp: TIGOATokenResponse) => Promise<void>;
   requestAccessToken(params: TIGOARequestAccessToken);
 }
 
