@@ -81,7 +81,7 @@ export class GoogleDriveProxy {
     requests.request(this._appDiscoveryDocs, this._appApiKey, this._appScopes, (success: boolean, result) => {
       if (success) {
         this._tokenClient.callback = async (resp) => {
-          if (!!resp.error) {
+          if (resp.hasOwnProperty('error')) {
             PCPDebugConsole.error(this, 'initializeClient::tokenClient> {0}', resp.error);
             throw (resp);
           } else {

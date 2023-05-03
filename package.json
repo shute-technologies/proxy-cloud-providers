@@ -1,6 +1,6 @@
 {
   "name": "shute-technologies.proxy-cloud-providers",
-  "version": "0.1.0",
+  "version": "0.1.01",
   "license": "MIT",
   "private": false,
   "main": "lib/index.js",
