@@ -1,14 +1,14 @@
 import { GoogleDriveProxy } from '../googleDriveProxy';
 import { GCSBaseRequest } from '../gcsBaseRequest';
-import { ICallback2 } from 'shute-technologies.common-and-utils';
+import { IRCallback2 } from 'shute-technologies.common-and-utils';
 import { GCSIRequestResponseArg } from './data/gcsIResquestResponseArg';
 
 export interface GCSRequest_GetFileResultParameter {
   exists: boolean;
-  id: string;
-  fileData;
-  error: any;
-  args: any;
+  id?: string;
+  fileData?: string;
+  error?: any;
+  args?: any;
 }
 
 export interface GCSRequest_GetFileResponse extends GCSIRequestResponseArg {
@@ -16,17 +16,17 @@ export interface GCSRequest_GetFileResponse extends GCSIRequestResponseArg {
   arguments: any;
 }
 
-export class GCSRequest_GetFile extends GCSBaseRequest {
+export class GCSRequest_GetFile extends GCSBaseRequest<GCSRequest_GetFileResponse> {
   //var mOnGetCallbackWithResponse;
   //var mFileMetadata;
   //var mResultParameter;
 
-  private _fileId: string;
+  private _fileId: string | undefined;
   private _arguments: any;
   private _fileMetadata: {
     fileId: string;
     alt: string;
-  };
+  } | undefined;
   private _resultParameter: GCSRequest_GetFileResultParameter;
 
   // Try Again: Variables
@@ -39,9 +39,17 @@ export class GCSRequest_GetFile extends GCSBaseRequest {
 
     this._keepTrying = true;
     this._trying_counts = -1;
+    this._keepTrying_CountLimit = 3;
+    this._resultParameter = {
+      exists: false,
+      id: undefined,
+      fileData: undefined,
+      error: null,
+      args: null
+    };
   }
 
-  request(fileId: string, onGetCallbackWithResponse: ICallback2<boolean, GCSRequest_GetFileResponse>, args: any): void {
+  request(fileId: string, onGetCallbackWithResponse: IRCallback2<boolean, GCSRequest_GetFileResponse>, args: any): void {
     this._fileId = fileId;
     this._arguments = args;
     this._onCallbackResponse = onGetCallbackWithResponse;
@@ -49,14 +57,6 @@ export class GCSRequest_GetFile extends GCSBaseRequest {
     this._fileMetadata = {
       fileId,
       alt: 'media',
-    };
-
-    this._resultParameter = {
-      exists: false,
-      id: fileId,
-      fileData: null,
-      error: null,
-      args,
     };
 
     // Do request
@@ -73,7 +73,7 @@ export class GCSRequest_GetFile extends GCSBaseRequest {
       );
   }
 
-  private onProcessResponse(response): void {
+  private onProcessResponse(response: { body: string }): void {
     let fileRawBody = response.body;
 
     // Remove encoding usually: base64
@@ -96,7 +96,7 @@ export class GCSRequest_GetFile extends GCSBaseRequest {
     this.doFinishRequest();
   }
 
-  private onProcessError(errorReason) {
+  private onProcessError(errorReason: any) {
     const canKeepTrying = this.tryAgain(this, errorReason, 1000);
 
     if (!canKeepTrying) {
@@ -112,7 +112,7 @@ export class GCSRequest_GetFile extends GCSBaseRequest {
   }
 
   // ANALIZE: Move this logic to GCSBaseRequest, so all request have the Try Again functionallity
-  private tryAgain(instance: GCSRequest_GetFile, errorReason, waitTime: number): boolean {
+  private tryAgain(instance: GCSRequest_GetFile, errorReason: { status: number }, waitTime: number): boolean {
     // Try Again: Variables
     if (instance._trying_counts === -1) {
       instance._trying_counts = 0;
@@ -123,7 +123,7 @@ export class GCSRequest_GetFile extends GCSBaseRequest {
 
     if (resultCanKeepTrying) {
       setTimeout(
-        (instance: GCSRequest_GetFile, errorReason) => {
+        (instance: GCSRequest_GetFile, errorReason: { status: number }) => {
           // var hasInternetConnection = NSharedUtil.IsServerHostReachable();
 
           switch (errorReason.status) {
@@ -141,10 +141,8 @@ export class GCSRequest_GetFile extends GCSBaseRequest {
     return resultCanKeepTrying;
   }
 
-  destroy(): void {
+  override destroy(): void {
     this._arguments = null;
-    this._resultParameter = null;
-    this._fileMetadata = null;
     this._keepTrying = false;
 
     super.destroy();

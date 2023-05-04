@@ -1,7 +1,7 @@
 import { ICallback1 } from "shute-technologies.common-and-utils";
 
 export interface TIGoogleApi {
-  load(apiName: string, callback: gapi.CallbackOrConfig): void;
+  load(apiName: string, callback: any): void;
 
   readonly auth2: TIGoogleApiAuth;
   readonly client: TIGoogleApiClient;
@@ -32,7 +32,7 @@ export interface TIGoogleApiClient {
 
     hosted_domain?: string;
   }): Promise<void>;
-  request(arg: TIGoogleApiClientRequestArg): TIGoogleApiRequest;
+  request<TArg>(arg: TIGoogleApiClientRequestArg): TIGoogleApiRequest<TArg>;
   drive: TIGoogleApiDrive;
   getToken(): unknown;
 }
@@ -49,9 +49,9 @@ export interface TIGoogleApiClientRequestArg {
   body: any;
 }
 
-export interface TIGoogleApiRequest {
-  execute(response: (args) => void): void;
-  then(response: (args) => void, errorResponse: (args) => void): void;
+export interface TIGoogleApiRequest<TArg> {
+  execute(response: (args: TArg) => void): void;
+  then(response: (args: TArg) => void, errorResponse: (args: any) => void): void;
 }
 
 export interface TIGoogleApiAuthInstance {
@@ -62,7 +62,7 @@ export interface TIGoogleApiAuthInstance {
 
 export interface TIGoogleApiListen {
   get(): TIGoogleApiUser;
-  listen(listener: ICallback1<boolean>);
+  listen(listener: ICallback1<boolean>): void;
 }
 
 export interface TIGoogleApiUser {}
@@ -73,14 +73,14 @@ export interface TIGoogleApiDrive {
 }
 
 export interface TIGoogleApiDriveAbout {
-  get(arg: { fields }): TIGoogleApiRequest;
+  get<TArg>(arg: { fields: string }): TIGoogleApiRequest<TArg>;
 }
 
 export interface TIGoogleApiFiles { 
   list(arg: TIGoogleApiFilesObject): Promise<any>;
-  get(arg: TIGoogleApiFilesGet): Promise<any>;
+  get(arg?: TIGoogleApiFilesGet): Promise<any>;
   create(arg: TIGoogleApiFilesCreate): Promise<any>;
-  delete(arg: { fileId: string }): TIGoogleApiRequest;
+  delete<TArg>(arg: { fileId: string }): TIGoogleApiRequest<TArg>;
 }
 
 export interface TIGoogleApiFilesObject {

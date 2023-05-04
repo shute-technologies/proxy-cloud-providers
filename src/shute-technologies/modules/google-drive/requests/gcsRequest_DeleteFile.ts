@@ -1,6 +1,6 @@
 import { GoogleDriveProxy } from '../googleDriveProxy';
 import { GCSBaseRequest } from '../gcsBaseRequest';
-import { ICallback2 } from 'shute-technologies.common-and-utils';
+import { IRCallback2 } from 'shute-technologies.common-and-utils';
 import { GCSIRequestResponseArg } from './data/gcsIResquestResponseArg';
 
 export interface GCSRequest_DeleteFileResponse extends GCSIRequestResponseArg {
@@ -9,25 +9,25 @@ export interface GCSRequest_DeleteFileResponse extends GCSIRequestResponseArg {
   arguments: any;
 }
 
-export class GCSRequest_DeleteFile extends GCSBaseRequest {
+export class GCSRequest_DeleteFile extends GCSBaseRequest<GCSRequest_DeleteFileResponse> {
   private _arguments: any;
 
-  constructor(private readonly _gcsUserDrive: GoogleDriveProxy) {
-    super(_gcsUserDrive);
+  constructor(gcsUserDrive: GoogleDriveProxy) {
+    super(gcsUserDrive);
   }
 
-  request(fileId: string, onCallbackResponse: ICallback2<boolean, GCSRequest_DeleteFileResponse>, args: any): void {
+  request(fileId: string, onCallbackResponse: IRCallback2<boolean, GCSRequest_DeleteFileResponse>, args: any): void {
     this._arguments = args;
     this._onCallbackResponse = onCallbackResponse;
 
-    const request = this._googleApi.client.drive.files.delete({ fileId: fileId });
+    const request = this._googleApi.client.drive.files.delete<{ error: string, code: number }>({ fileId: fileId });
     request.execute((response) => {
       if (this._onCallbackResponse) {
         const result = {
           arguments: this._arguments
         } as GCSRequest_DeleteFileResponse;
 
-        if (response['error']) {
+        if (response.error) {
           result.errorCode = response.code;
           result.errorReason = response.error;
           result.success = false;
@@ -42,7 +42,7 @@ export class GCSRequest_DeleteFile extends GCSBaseRequest {
     });
   }
 
-  destroy(): void {
+  override destroy(): void {
     this._arguments = null;
     super.destroy();
   }

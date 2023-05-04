@@ -1,6 +1,6 @@
 import { GoogleDriveProxy } from '../googleDriveProxy';
 import { GCSBaseRequest } from '../gcsBaseRequest';
-import { ICallback2 } from 'shute-technologies.common-and-utils';
+import { IRCallback2 } from 'shute-technologies.common-and-utils';
 import { GCSIRequestResponseArg } from './data/gcsIResquestResponseArg';
 import { GCSEnumMimeType } from '../enums/gcsEnumMimeTypes';
 import { PCPDebugConsole } from '../../../helpers/pcpConsole';
@@ -18,14 +18,14 @@ export interface GCSRequest_UFFJSOResultParameter {
   error: any;
 }
 
-export class GCSRequest_UpdateFileFromJSObject extends GCSBaseRequest {
+export class GCSRequest_UpdateFileFromJSObject extends GCSBaseRequest<GCSRequest_UFFJSOResponse> {
   private _arguments: any;
 
   constructor(private readonly _gcsUserDrive: GoogleDriveProxy) {
     super(_gcsUserDrive);
   }
 
-  request(fileId: string, jsObject: {}, onCallbackResponse: ICallback2<boolean, GCSRequest_UFFJSOResponse>, args) {
+  request(fileId: string, jsObject: {}, onCallbackResponse: IRCallback2<boolean, GCSRequest_UFFJSOResponse>, args?: any) {
     this._arguments = args;
     this._onCallbackResponse = onCallbackResponse;
 
@@ -60,7 +60,7 @@ export class GCSRequest_UpdateFileFromJSObject extends GCSBaseRequest {
     const multipartRequestBody =
       delimiter + 'Content-Type: application/json\r\n\r\n' + JSON.stringify(metadata) + delimiter + 'Content-Type: ' + bodyType + '' + base64Data + close_delim;
 
-    const request = this._googleApi.client.request({
+    const request = this._googleApi.client.request<{ id: string }>({
       path: '/upload/drive/v3/files/' + fileId,
       method: 'PATCH',
       params: { uploadType: 'multipart' },
@@ -100,7 +100,7 @@ export class GCSRequest_UpdateFileFromJSObject extends GCSBaseRequest {
     );
   }
 
-  destroy(): void {
+  override destroy(): void {
     this._arguments = null;
     super.destroy();
   }

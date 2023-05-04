@@ -1,19 +1,19 @@
 import { GoogleDriveProxy } from '../googleDriveProxy';
 import { GCSBaseRequest } from '../gcsBaseRequest';
-import { ICallback2 } from 'shute-technologies.common-and-utils';
+import { IRCallback2 } from 'shute-technologies.common-and-utils';
 import { GCSIRequestResponseArg } from './data/gcsIResquestResponseArg';
 
 export interface GCSRRArgClientInitialize extends GCSIRequestResponseArg {
-  response?;
+  response?: unknown;
 }
 
-export class GCSRequest_ClientInitialize extends GCSBaseRequest {
+export class GCSRequest_ClientInitialize extends GCSBaseRequest<GCSRRArgClientInitialize> {
 
-  constructor(private readonly _gcsUserDrive: GoogleDriveProxy) {
-    super(_gcsUserDrive);
+  constructor(gcsUserDrive: GoogleDriveProxy) {
+    super(gcsUserDrive);
   }
 
-  request(discoveryDocs: string[], apiKey: string, scope: string, onCallbackResponse: ICallback2<boolean, GCSRRArgClientInitialize>): void {
+  request(discoveryDocs: string[], apiKey: string, scope: string, onCallbackResponse: IRCallback2<boolean, GCSRRArgClientInitialize>): void {
     this._onCallbackResponse = onCallbackResponse;
 
     this._googleApi.client

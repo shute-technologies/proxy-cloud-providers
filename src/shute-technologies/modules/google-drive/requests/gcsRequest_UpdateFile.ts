@@ -1,6 +1,6 @@
 import { GoogleDriveProxy } from '../googleDriveProxy';
 import { GCSBaseRequest } from '../gcsBaseRequest';
-import { ICallback2 } from 'shute-technologies.common-and-utils';
+import { IRCallback2 } from 'shute-technologies.common-and-utils';
 import { GCSIRequestResponseArg } from './data/gcsIResquestResponseArg';
 import { GCSEnumMimeType } from '../enums/gcsEnumMimeTypes';
 import { PCPDebugConsole } from '../../../helpers/pcpConsole';
@@ -18,7 +18,7 @@ export interface GCSRequest_UFileResponse extends GCSIRequestResponseArg {
   arguments: any;
 }
 
-export class GCSRequest_UpdateFile extends GCSBaseRequest {
+export class GCSRequest_UpdateFile extends GCSBaseRequest<GCSRequest_UFileResponse> {
 
   private _arguments: any;
 
@@ -30,9 +30,9 @@ export class GCSRequest_UpdateFile extends GCSBaseRequest {
     fileId: string,
     mimeType: GCSEnumMimeType,
     base64Data: string,
-    onCallbackResponse: ICallback2<boolean, GCSRequest_UFileResponse>,
-    args,
-    newFileName: string
+    onCallbackResponse: IRCallback2<boolean, GCSRequest_UFileResponse>,
+    args?: any,
+    newFileName?: string
   ): void {
     this._arguments = args;
     this._onCallbackResponse = onCallbackResponse;
@@ -53,8 +53,8 @@ export class GCSRequest_UpdateFile extends GCSBaseRequest {
 
     const metadata = {
       mimeType: metaType,
-      fields: 'id',
-    };
+      fields: 'id' 
+    } as { [key: string]: string };
 
     if (newFileName) {
       metadata['name'] = newFileName;
@@ -63,7 +63,7 @@ export class GCSRequest_UpdateFile extends GCSBaseRequest {
     const multipartRequestBody =
       delimiter + 'Content-Type: application/json\r\n\r\n' + JSON.stringify(metadata) + delimiter + 'Content-Type: ' + bodyType + '' + base64Data + close_delim;
 
-    const request = this._googleApi.client.request({
+    const request = this._googleApi.client.request<{ result: { id: string, name: string } }>({
       path: '/upload/drive/v3/files/' + fileId,
       method: 'PATCH',
       params: { uploadType: 'multipart' },
@@ -104,7 +104,7 @@ export class GCSRequest_UpdateFile extends GCSBaseRequest {
     );
   }
 
-  destroy(): void {
+  override destroy(): void {
     this._arguments = null;
     super.destroy();
   }

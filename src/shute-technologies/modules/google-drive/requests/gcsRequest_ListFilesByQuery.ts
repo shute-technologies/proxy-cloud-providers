@@ -1,6 +1,6 @@
 import { GoogleDriveProxy } from '../googleDriveProxy';
 import { GCSBaseRequest } from '../gcsBaseRequest';
-import { ICallback2 } from 'shute-technologies.common-and-utils';
+import { IRCallback2 } from 'shute-technologies.common-and-utils';
 import { GCSIRequestResponseArg } from './data/gcsIResquestResponseArg';
 import { PCPDebugConsole } from '../../../helpers/pcpConsole';
 
@@ -9,7 +9,7 @@ export interface GCSRequest_LFBQResponse extends GCSIRequestResponseArg {
   arguments: any;
 }
 
-export class GCSRequest_ListFilesByQuery extends GCSBaseRequest {
+export class GCSRequest_ListFilesByQuery extends GCSBaseRequest<GCSRequest_LFBQResponse> {
 
   private _arguments: any;
 
@@ -17,7 +17,7 @@ export class GCSRequest_ListFilesByQuery extends GCSBaseRequest {
     super(_gcsUserDrive);
   }
 
-  request(queryObject, onCallbackResponse: ICallback2<boolean, GCSRequest_LFBQResponse>, args: any) {
+  request(queryObject: any, onCallbackResponse: IRCallback2<boolean, GCSRequest_LFBQResponse>, args: any) {
     this._arguments = args;
     this._onCallbackResponse = onCallbackResponse;
 
@@ -47,7 +47,7 @@ export class GCSRequest_ListFilesByQuery extends GCSBaseRequest {
     );
   }
 
-  destroy(): void {
+  override destroy(): void {
     super.destroy();
     this._arguments = null;
   }

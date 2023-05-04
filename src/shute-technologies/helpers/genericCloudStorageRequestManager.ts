@@ -1,15 +1,19 @@
 import { ICallback1 } from "shute-technologies.common-and-utils";
 import { GCSBaseRequest } from "../modules/google-drive/gcsBaseRequest";
 import { PCPDebugConsole } from './pcpConsole';
+import { GCSIRequestResponseArg } from '../modules/google-drive/requests/data/gcsIResquestResponseArg';
 
 export class GenericCloudStorageRequestManager {
-  private _requests: { request: GCSBaseRequest; finished: boolean }[];
+  private _requests: { request: GCSBaseRequest<GCSIRequestResponseArg>; finished: boolean }[];
 
-  constructor(private _onFinishedAllCallback: ICallback1<any>, private readonly _args: any) {
+  constructor(
+    private _onFinishedAllCallback: ICallback1<any> | null, 
+    private readonly _args: any
+  ) {
     this._requests = [];
   }
 
-  addRequest(request: GCSBaseRequest): void {
+  addRequest(request: GCSBaseRequest<GCSIRequestResponseArg>): void {
     let existsRequests = false;
 
     for (let i = 0; i < this._requests.length; i++) {
@@ -28,7 +32,7 @@ export class GenericCloudStorageRequestManager {
     }
   }
 
-  finishedRequest(request: GCSBaseRequest): void {
+  finishedRequest<T extends GCSIRequestResponseArg>(request: GCSBaseRequest<T>): void {
     const totalRequests = this._requests.length;
     let completedRequests = 0;
 
@@ -46,7 +50,6 @@ export class GenericCloudStorageRequestManager {
   }
 
   destroy(): void {
-    this._requests = null;
     this._onFinishedAllCallback = null;
   }
 }

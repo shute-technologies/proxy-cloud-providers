@@ -1,20 +1,20 @@
 import { GoogleDriveProxy } from '../googleDriveProxy';
 import { GCSBaseRequest } from '../gcsBaseRequest';
-import { ICallback2 } from 'shute-technologies.common-and-utils';
+import { IRCallback2 } from 'shute-technologies.common-and-utils';
 import { GCSIRequestResponseArg } from './data/gcsIResquestResponseArg';
 
 export interface GCSRequest_DeleteFileFromFolderResponse extends GCSIRequestResponseArg {
   arguments: any;
 }
 
-export class GCSRequest_DeleteFileFromFolder extends GCSBaseRequest {
+export class GCSRequest_DeleteFileFromFolder extends GCSBaseRequest<GCSRequest_DeleteFileFromFolderResponse> {
   private _arguments: any;
 
   constructor(private readonly _gcsUserDrive: GoogleDriveProxy) {
     super(_gcsUserDrive);
   }
 
-  request(fileName: string, folderId: string, onCallbackResponse: ICallback2<boolean, GCSRequest_DeleteFileFromFolderResponse>, args: any): void {
+  request(fileName: string, folderId: string, onCallbackResponse: IRCallback2<boolean, GCSRequest_DeleteFileFromFolderResponse>, args: any): void {
     this._arguments = args;
     this._onCallbackResponse = onCallbackResponse;
 
@@ -44,7 +44,7 @@ export class GCSRequest_DeleteFileFromFolder extends GCSBaseRequest {
     }
   }
 
-  destroy(): void {
+  override destroy(): void {
     this._arguments = null;
     super.destroy();
   }

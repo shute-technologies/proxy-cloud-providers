@@ -1,17 +1,17 @@
 import { GoogleDriveProxy } from '../googleDriveProxy';
 import { GCSBaseRequest } from '../gcsBaseRequest';
-import { ICallback2 } from 'shute-technologies.common-and-utils';
+import { IRCallback2 } from 'shute-technologies.common-and-utils';
 import { GCSConfig } from '../config/gcsConfig';
 import { GCSIRequestResponseArg } from './data/gcsIResquestResponseArg';
 import { PCPDebugConsole } from '../../../helpers/pcpConsole';
 
 export interface GCSRequest_EFBNResponse extends GCSIRequestResponseArg {
   existsFile: boolean;
-  fileId: string;
+  fileId: string | null;
   arguments: any;
 }
 
-export class GCSRequest_ExistsFileByName extends GCSBaseRequest {
+export class GCSRequest_ExistsFileByName extends GCSBaseRequest<GCSRequest_EFBNResponse> {
   
   private _arguments: any;
 
@@ -19,7 +19,7 @@ export class GCSRequest_ExistsFileByName extends GCSBaseRequest {
     super(_gcsUserDrive);
   }
 
-  request(fileName: string, onCallbackResponse: ICallback2<boolean, GCSRequest_EFBNResponse>, args: any): void {
+  request(fileName: string, onCallbackResponse: IRCallback2<boolean, GCSRequest_EFBNResponse>, args: any): void {
     this._arguments = args;
     this._onCallbackResponse = onCallbackResponse;
 
@@ -59,7 +59,7 @@ export class GCSRequest_ExistsFileByName extends GCSBaseRequest {
     );
   }
 
-  destroy(): void {
+  override destroy(): void {
     super.destroy();
     this._arguments = null;
   }

@@ -2,22 +2,22 @@ import { GoogleDriveProxy } from '../googleDriveProxy';
 import { GCSBaseRequest } from '../gcsBaseRequest';
 import { GCSConfig } from '../config/gcsConfig';
 import { GCSIRequestResponseArg } from './data/gcsIResquestResponseArg';
-import { ICallback2 } from 'shute-technologies.common-and-utils';
+import { IRCallback2 } from 'shute-technologies.common-and-utils';
 import { PCPDebugConsole } from '../../../helpers/pcpConsole';
 
-export interface GCSRequest_LFFRResponse extends GCSIRequestResponseArg {
-  response;
-  arguments;
+export interface GCSRequest_LFFRResponse<TArg> extends GCSIRequestResponseArg {
+  response: any;
+  arguments: TArg;
 }
 
-export class GCSRequest_ListFilesFromRoot extends GCSBaseRequest {
-  private _arguments: any;
+export class GCSRequest_ListFilesFromRoot<TArg> extends GCSBaseRequest<GCSRequest_LFFRResponse<TArg>> {
+  private _arguments?: TArg;
 
   constructor(private readonly _gcsUserDrive: GoogleDriveProxy) {
     super(_gcsUserDrive);
   }
 
-  request(onCallbackResponse: ICallback2<boolean, GCSRequest_LFFRResponse>, args?: any) {
+  request(onCallbackResponse: IRCallback2<boolean, GCSRequest_LFFRResponse<TArg>>, args?: TArg) {
     this._arguments = args;
     this._onCallbackResponse = onCallbackResponse;
 
@@ -29,7 +29,7 @@ export class GCSRequest_ListFilesFromRoot extends GCSBaseRequest {
           this._onCallbackResponse(true, {
             response, 
             arguments: this._arguments
-          } as GCSRequest_LFFRResponse);
+          } as GCSRequest_LFFRResponse<TArg>);
         }
 
         this.doFinishRequest();
@@ -41,7 +41,7 @@ export class GCSRequest_ListFilesFromRoot extends GCSBaseRequest {
           this._onCallbackResponse(true, {
             errorReason: reason, 
             arguments: this._arguments
-          } as GCSRequest_LFFRResponse);
+          } as GCSRequest_LFFRResponse<TArg>);
         }
 
         this.doFinishRequest();
@@ -49,8 +49,8 @@ export class GCSRequest_ListFilesFromRoot extends GCSBaseRequest {
     );
   }
 
-  destroy(): void {
+  override destroy(): void {
     super.destroy();
-    this._arguments = null;
+    this._arguments = undefined;
   }
 }

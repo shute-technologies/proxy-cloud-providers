@@ -1,29 +1,41 @@
 import { GoogleDriveProxy } from '../googleDriveProxy';
 import { GCSBaseRequest } from '../gcsBaseRequest';
-import { ICallback2 } from 'shute-technologies.common-and-utils';
+import { IRCallback2, IRCallback4 } from 'shute-technologies.common-and-utils';
 import { GCSIRequestResponseArg } from './data/gcsIResquestResponseArg';
 import { PCPDebugConsole } from '../../../helpers/pcpConsole';
+import { GCSRRArgClientInitialize } from './gcsRequest_ClientInitialize';
 
 export interface GCSRequest_GFJSOBNResponse extends GCSIRequestResponseArg {
-  jsObject: {};
+  jsObject: {} | null;
   arguments: any;
 }
 
-export class GCSRequest_GetFileJSObjectByName extends GCSBaseRequest {
+export class GCSRequest_GetFileJSObjectByName extends GCSBaseRequest<GCSRequest_GFJSOBNResponse> {
   private _arguments: any;
 
   constructor(private readonly _gcsUserDrive: GoogleDriveProxy) {
     super(_gcsUserDrive);
   }
 
-  request(fileName: string, folderId: string, onCallbackResponse: ICallback2<boolean, GCSRequest_GFJSOBNResponse>, args): void {
+  request(
+    fileName: string, 
+    folderId: string, 
+    onCallbackResponse: IRCallback2<boolean, GCSRequest_GFJSOBNResponse>,
+    args: { 
+      callback?: IRCallback4<{}, string, string, any>; 
+      extraArgs?: { 
+        callback: (arg0: null, arg1: any, arg2: any, arg3: any) => void;
+      }; 
+      requestedFileName: string; 
+      requestedFolderId: string; 
+    } | undefined
+  ): void {
     this._arguments = args;
     this._onCallbackResponse = onCallbackResponse;
-
-    this._gcsUserDrive.existsFileInFolderByName(fileName, folderId, this.onResult_ExistsFile);
+    this._gcsUserDrive.existsFileInFolderByName(fileName, folderId, (a0, a1) => this.onResult_ExistsFile(a0, a1));
   }
 
-  private onResult_ExistsFile(existsFile: boolean, fileId: string): void {
+  private onResult_ExistsFile(existsFile: boolean | undefined, fileId: string): void {
     if (existsFile) {
       this._googleApi.client.drive.files
         .get({
@@ -69,7 +81,7 @@ export class GCSRequest_GetFileJSObjectByName extends GCSBaseRequest {
     }
   }
 
-  destroy(): void {
+  override destroy(): void {
     super.destroy();
     this._arguments = null;
   }

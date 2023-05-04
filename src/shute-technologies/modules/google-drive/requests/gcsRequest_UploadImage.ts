@@ -1,6 +1,6 @@
 import { GoogleDriveProxy } from '../googleDriveProxy';
 import { GCSBaseRequest } from '../gcsBaseRequest';
-import { ICallback2 } from 'shute-technologies.common-and-utils';
+import { IRCallback2 } from 'shute-technologies.common-and-utils';
 import { GCSIRequestResponseArg } from './data/gcsIResquestResponseArg';
 import { GCSEnumMimeType } from '../enums/gcsEnumMimeTypes';
 
@@ -17,7 +17,7 @@ export interface GCSRequest_UploadImageResponse extends GCSIRequestResponseArg {
   arguments: any;
 }
 
-export class GCSRequest_UploadImage extends GCSBaseRequest {
+export class GCSRequest_UploadImage extends GCSBaseRequest<GCSRequest_UploadImageResponse> {
   private _arguments: any;
 
   constructor(private readonly _gcsUserDrive: GoogleDriveProxy) {
@@ -27,11 +27,11 @@ export class GCSRequest_UploadImage extends GCSBaseRequest {
   request(
     fileName: string,
     mimeType: GCSEnumMimeType,
-    parentFolder,
+    parentFolder: string,
     base64Data: string,
-    onCallbackResponse: ICallback2<boolean, GCSRequest_UploadImageResponse>,
-    args,
-    extraMetadata
+    onCallbackResponse: IRCallback2<boolean, GCSRequest_UploadImageResponse>,
+    args?: any,
+    extraMetadata?: any
   ): void {
     this._arguments = args;
     this._onCallbackResponse = onCallbackResponse;
@@ -83,7 +83,7 @@ export class GCSRequest_UploadImage extends GCSBaseRequest {
 
     multipartRequestBody += close_delim;
 
-    const request = this._googleApi.client.request({
+    const request = this._googleApi.client.request<{ id: string }>({
       path: '/upload/drive/v3/files',
       method: 'POST',
       params: { uploadType: 'multipart' },
@@ -91,7 +91,7 @@ export class GCSRequest_UploadImage extends GCSBaseRequest {
       body: multipartRequestBody,
     });
 
-    request.execute(function (response) {
+    request.execute((response) => {
       resultParameter.id = response.id;
       resultParameter.created = true;
 
@@ -106,7 +106,7 @@ export class GCSRequest_UploadImage extends GCSBaseRequest {
     });
   }
 
-  destroy(): void {
+  override destroy(): void {
     this._arguments = null;
     super.destroy();
   }

@@ -15,14 +15,14 @@ export interface TIGOATokenResponse {
   prompt: string;
   scope: string;
   token_type: string;
-  error;
+  error: string;
 }
 
 export interface TIGOATokenClient {
   callback: (resp: TIGOATokenResponse) => Promise<void>;
-  requestAccessToken(params: TIGOARequestAccessToken);
+  requestAccessToken(params: TIGOARequestAccessToken): void;
 }
 
 export interface TIGoogleOAuth2 {
-  initTokenClient(params: TIGOAClientParameters);
+  initTokenClient(params: TIGOAClientParameters): TIGOATokenClient;
 }

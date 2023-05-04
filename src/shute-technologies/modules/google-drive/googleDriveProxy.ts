@@ -20,9 +20,11 @@ import { GCSRequest_DeleteFileFromFolder } from './requests/gcsRequest_DeleteFil
 import { GCSRequest_GetFile, GCSRequest_GetFileResultParameter } from './requests/gcsRequest_GetFile';
 import { GCSRequest_DeleteFile, GCSRequest_DeleteFileResponse } from './requests/gcsRequest_DeleteFile';
 import { PCPDebugConsole } from '../../helpers/pcpConsole';
-import { ICallback1, ICallback2, ICallback3, ICallback4 } from 'shute-technologies.common-and-utils';
+import { IRCallback1, IRCallback2, IRCallback3, IRCallback4 } from 'shute-technologies.common-and-utils';
+import { GCSIRequestResponseArg } from './requests/data/gcsIResquestResponseArg';
 
-declare const google;
+declare const gapi: any;
+declare const google: { accounts: { oauth2: TIGoogleOAuth2; }; };
 
 export class GoogleDriveProxy {
   private _googleApi: TIGoogleApi;
@@ -33,35 +35,36 @@ export class GoogleDriveProxy {
   private _appScopes: string;
   private _appDiscoveryDocs: string[];
   private _isSignedIn: boolean;
-  private _tokenClient: TIGOATokenClient;
-  private _userToken: TIGOATokenResponse;
+  private _tokenClient?: TIGOATokenClient;
+  private _userToken?: TIGOATokenResponse;
 
-  private _requests: Array<GCSBaseRequest>;
-  private _userPersonalInfo: GCSRequest_GPIResponseUser;
-  private _userStorageQuota: GCSRequest_GPIResponseStorageQuota;
+  private _requests: Array<GCSBaseRequest<GCSIRequestResponseArg>>;
+  private _userPersonalInfo?: GCSRequest_GPIResponseUser;
+  private _userStorageQuota?: GCSRequest_GPIResponseStorageQuota;
 
   // callbacks
-  callbackOnSignedIn: ICallback1<boolean>;
+  callbackOnSignedIn?: IRCallback1<boolean>;
 
   get isSignedIn(): boolean { return this._isSignedIn; }
   get googleApi(): TIGoogleApi { return this._googleApi; }
-  get userPersonalInfo(): GCSRequest_GPIResponseUser { return this._userPersonalInfo; }
-  get userStorageQuota(): GCSRequest_GPIResponseStorageQuota { return this._userStorageQuota; }
+  get userPersonalInfo(): GCSRequest_GPIResponseUser | undefined { return this._userPersonalInfo; }
+  get userStorageQuota(): GCSRequest_GPIResponseStorageQuota | undefined { return this._userStorageQuota; }
 
-  constructor() {
-    this._requests = [];
-    this._isSignedIn = false;
-  }
-
-  loadClient(clientId: string, apiKey: string, scopes: string, appDiscoveryDocs: string[]): void {
+  constructor(clientId: string, apiKey: string, scopes: string, appDiscoveryDocs: string[]) {
     this._appClientId = clientId;
     this._appApiKey = apiKey;
     this._appScopes = scopes;
     this._appDiscoveryDocs = appDiscoveryDocs;
 
+    this._requests = [];
+    this._isSignedIn = false;
+
     // reference the Google OAuth2 library
     this._googleOAuth2 = google.accounts.oauth2;
+    this._googleApi = gapi as any;
+  }
 
+  loadClient(): void {
     this._tokenClient = this._googleOAuth2.initTokenClient({
       client_id: this._appClientId,
       scope: this._appScopes,
@@ -69,7 +72,6 @@ export class GoogleDriveProxy {
     });
 
     // reference the GAPI library
-    this._googleApi = gapi as any;
     this._googleApi.load('client:auth2', () => this.initializeClient());
 
     PCPDebugConsole.log(this, 'Successful load of Google API.');
@@ -81,18 +83,20 @@ export class GoogleDriveProxy {
     const requests = new GCSRequest_ClientInitialize(this);
     requests.request(this._appDiscoveryDocs, this._appApiKey, this._appScopes, (success: boolean, result) => {
       if (success) {
-        this._tokenClient.callback = async (resp) => this.onTokenClient(resp);
-
+        (this._tokenClient as TIGOATokenClient).callback = async (resp: TIGOATokenResponse) => {
+          this.onTokenClient(resp);
+        };
+        
         if (this._googleApi.client.getToken() === null) {
           // Prompt the user to select a Google Account and ask for consent to share their data
           // when establishing a new session.
-          this._tokenClient.requestAccessToken({prompt: 'consent'});
+          this._tokenClient?.requestAccessToken({prompt: 'consent'});
         } else {
           // Skip display of account chooser and consent dialog for an existing session.
-          this._tokenClient.requestAccessToken({prompt: ''});
+          this._tokenClient?.requestAccessToken({prompt: ''});
         }
       } else {
-        PCPDebugConsole.error(this, 'initializeClient> {0}', result.errorReason.details);
+        PCPDebugConsole.error(this, 'initializeClient> {0}', result?.errorReason?.details);
       }
     });
 
@@ -116,7 +120,7 @@ export class GoogleDriveProxy {
     }
   }
 
-  clearRequest(request: GCSBaseRequest): void {
+  clearRequest<T extends GCSIRequestResponseArg>(request: GCSBaseRequest<T>): void {
     if (this._isSignedIn) {
       for (let i = 0; i < this._requests.length; i++) {
         if (this._requests[i].uid === request.uid) {
@@ -158,7 +162,7 @@ export class GoogleDriveProxy {
       });
 
       // Add it to the Request
-      this._requests.push(requests);
+      this._requests.push(requests as GCSBaseRequest<GCSIRequestResponseArg>);
     } else {
       // On Signed In
       if (this.callbackOnSignedIn) {
@@ -183,7 +187,7 @@ export class GoogleDriveProxy {
     }
   }
 
-  existsFileByName(fileName: string, onCallbackResult?: ICallback2<boolean, string>) {
+  existsFileByName(fileName: string, onCallbackResult?: IRCallback2<boolean, string>) {
     if (this._isSignedIn) {
       const requests = new GCSRequest_ExistsFileByName(this);
       requests.request(
@@ -205,13 +209,13 @@ export class GoogleDriveProxy {
       );
 
       // Add it to the Request
-      this._requests.push(requests);
+      this._requests.push(requests as GCSBaseRequest<GCSIRequestResponseArg>);
     } else {
       PCPDebugConsole.warn(this, 'existsFileByName> You must signIn!');
     }
   }
 
-  existsFileInFolderByName(fileName: string, folderId: string, onCallbackResult?: ICallback3<boolean, string, any>, extraArgs?: any): void {
+  existsFileInFolderByName(fileName: string, folderId: string, onCallbackResult?: IRCallback3<boolean, string, any>, extraArgs?: any): void {
     if (this._isSignedIn) {
       const requests = new GCSRequest_ExistsFileInFolderByName(this);
       requests.request(
@@ -234,15 +238,15 @@ export class GoogleDriveProxy {
       );
 
       // Add it to the Request
-      this._requests.push(requests);
+      this._requests.push(requests as GCSBaseRequest<GCSIRequestResponseArg>);
     } else {
       PCPDebugConsole.warn(this, 'existsFileInFolderByName> You must signIn!');
     }
   }
 
-  listFilesFromRoot(onCallbackResult: ICallback1<any>): void {
+  listFilesFromRoot(onCallbackResult: IRCallback1<any>): void {
     if (this._isSignedIn) {
-      const requests = new GCSRequest_ListFilesFromRoot(this);
+      const requests = new GCSRequest_ListFilesFromRoot<IRCallback1<any>>(this);
       requests.request((success, response) => {
         if (success) {
           if (response.arguments) {
@@ -258,13 +262,13 @@ export class GoogleDriveProxy {
       }, onCallbackResult);
 
       // Add it to the Request
-      this._requests.push(requests);
+      this._requests.push(requests as GCSBaseRequest<GCSIRequestResponseArg>);
     } else {
       PCPDebugConsole.warn(this, 'listFilesFromRoot> You must signIn!');
     }
   }
 
-  listFilesByQuery(queryObject, onCallbackResult: ICallback3<boolean, any, any>, args): void {
+  listFilesByQuery(queryObject: any, onCallbackResult: IRCallback3<boolean, any, any>, args?: { extraArgs: any; }): void {
     if (this._isSignedIn) {
       const requests = new GCSRequest_ListFilesByQuery(this);
       requests.request(
@@ -276,7 +280,7 @@ export class GoogleDriveProxy {
             }
           } else {
             if (response.arguments && response.arguments.callback) {
-              response.arguments.callback(false, response.errorReason, args.extraArgs);
+              response.arguments.callback(false, response.errorReason, args?.extraArgs);
             }
 
             PCPDebugConsole.error(this, 'listFilesByQuery>', response.errorReason);
@@ -286,13 +290,20 @@ export class GoogleDriveProxy {
       );
 
       // Add it to the Request
-      this._requests.push(requests);
+      this._requests.push(requests as GCSBaseRequest<GCSIRequestResponseArg>);
     } else {
       PCPDebugConsole.warn(this, 'listFilesByQuery> You must signIn!');
     }
   }
 
-  getFileJSObjectByName(fileName: string, folderId: string, onCallbackResult: ICallback4<{}, string, string, any>, args?): void {
+  getFileJSObjectByName(
+    fileName: string,
+    folderId: string,
+    onCallbackResult?: IRCallback4<{}, string, string, any>, 
+    args?: { 
+      callback: (arg0: null, arg1: any, arg2: any, arg3: any) => void;
+    }
+  ): void {
     if (this._isSignedIn) {
       const requests = new GCSRequest_GetFileJSObjectByName(this);
       requests.request(
@@ -327,7 +338,7 @@ export class GoogleDriveProxy {
       );
 
       // Add it to the Request
-      this._requests.push(requests);
+      this._requests.push(requests as GCSBaseRequest<GCSIRequestResponseArg>);
     } else {
       PCPDebugConsole.warn(this, 'getFileJSObjectByName> You must signIn!');
     }
@@ -336,10 +347,10 @@ export class GoogleDriveProxy {
   createFolder(
     folderName: string,
     parentFolder: string,
-    onCreateCallbackWithResponse: ICallback1<GCSRequest_CFolderResultParameter>,
-    folderArgs
-  ): GCSRequest_CreateFolder {
-    let requestResult: GCSRequest_CreateFolder;
+    onCreateCallbackWithResponse: IRCallback1<GCSRequest_CFolderResultParameter>,
+    folderArgs: any
+  ): GCSRequest_CreateFolder | null {
+    let requestResult: GCSRequest_CreateFolder | null = null;
 
     if (this._isSignedIn) {
       requestResult = new GCSRequest_CreateFolder(this);
@@ -356,7 +367,7 @@ export class GoogleDriveProxy {
       );
 
       // Add it to the Request
-      this._requests.push(requestResult);
+      this._requests.push(requestResult as GCSBaseRequest<GCSIRequestResponseArg>);
     } else {
       PCPDebugConsole.warn(this, 'createFolder> You must signIn!');
     }
@@ -366,10 +377,10 @@ export class GoogleDriveProxy {
 
   createFileFromJSObject(
     fileName: string,
-    parentFolder,
+    parentFolder: string,
     jsObject: {},
-    onCreateCallbackWithResponse: ICallback2<GCSRequest_CFFJSOResultParameter, any>,
-    extraArgs
+    onCreateCallbackWithResponse: IRCallback2<GCSRequest_CFFJSOResultParameter, any>,
+    extraArgs?: any
   ): void {
     if (this._isSignedIn) {
       const requests = new GCSRequest_CreateFileFromJSObject(this);
@@ -388,7 +399,7 @@ export class GoogleDriveProxy {
       );
 
       // Add it to the Request
-      this._requests.push(requests);
+      this._requests.push(requests as GCSBaseRequest<GCSIRequestResponseArg>);
     } else {
       PCPDebugConsole.warn(this, 'createFileFromJSObject> You must signIn!');
     }
@@ -398,7 +409,7 @@ export class GoogleDriveProxy {
     fileName: string,
     folderId: string,
     jsObject: {},
-    onCreateCallbackWithResponse: ICallback3<boolean, GCSRequest_UFFJSOResultParameter, any>
+    onCreateCallbackWithResponse: IRCallback3<boolean, GCSRequest_UFFJSOResultParameter, any>
   ): void {
     this.existsFileInFolderByName(
       fileName,
@@ -415,7 +426,7 @@ export class GoogleDriveProxy {
   updateFileFromJSObject(
     fileId: string,
     jsObject: {},
-    onUpdateCallbackWithResponse: ICallback3<boolean, GCSRequest_UFFJSOResultParameter, any>,
+    onUpdateCallbackWithResponse: IRCallback3<boolean, GCSRequest_UFFJSOResultParameter, any>,
     extraArgs?: any
   ): void {
     if (this._isSignedIn) {
@@ -437,7 +448,7 @@ export class GoogleDriveProxy {
       );
 
       // Add it to the Request
-      this._requests.push(requests);
+      this._requests.push(requests as GCSBaseRequest<GCSIRequestResponseArg>);
     } else {
       PCPDebugConsole.warn(this, 'updateFileFromJSObject> You must signIn!');
     }
@@ -446,10 +457,10 @@ export class GoogleDriveProxy {
   createFile(
     fileName: string,
     mimeType: GCSEnumMimeType,
-    parentFolder,
-    base64Data,
-    onCreateCallbackWithResponse: ICallback3<boolean, GCSRequest_CFileResultParameter, any>,
-    extraArgs?
+    parentFolder: string,
+    base64Data: string,
+    onCreateCallbackWithResponse: IRCallback3<boolean, GCSRequest_CFileResultParameter, any>,
+    extraArgs?: any
   ): void {
     if (this._isSignedIn) {
       const requests = new GCSRequest_CreateFile(this);
@@ -469,7 +480,7 @@ export class GoogleDriveProxy {
       );
 
       // Add it to the Request
-      this._requests.push(requests);
+      this._requests.push(requests as GCSBaseRequest<GCSIRequestResponseArg>);
     } else {
       PCPDebugConsole.warn(this, 'createFile> You must signIn!');
     }
@@ -479,7 +490,7 @@ export class GoogleDriveProxy {
     fileId: string,
     mimeType: GCSEnumMimeType,
     base64Data: string,
-    onUpdateCallbackWithResponse: ICallback3<boolean, GCSRequest_UFileResultParameter, any>,
+    onUpdateCallbackWithResponse: IRCallback3<boolean, GCSRequest_UFileResultParameter, any>,
     extraArgs?: any,
     newFileName?: string
   ) {
@@ -505,7 +516,7 @@ export class GoogleDriveProxy {
       );
 
       // Add it to the Request
-      this._requests.push(requests);
+      this._requests.push(requests as GCSBaseRequest<GCSIRequestResponseArg>);
     } else {
       PCPDebugConsole.warn(this, 'updateFile> You must signIn!');
     }
@@ -514,10 +525,10 @@ export class GoogleDriveProxy {
   uploadImage(
     fileName: string,
     mimeType: GCSEnumMimeType,
-    parentFolder,
+    parentFolder: string,
     base64Data: string,
-    onCreateCallbackWithResponse: ICallback1<GCSRequest_UploadImageResultParameter>,
-    extraMetadata
+    onCreateCallbackWithResponse: IRCallback1<GCSRequest_UploadImageResultParameter>,
+    extraMetadata?: any
   ) {
     if (this._isSignedIn) {
       const requests = new GCSRequest_UploadImage(this);
@@ -538,13 +549,13 @@ export class GoogleDriveProxy {
       );
 
       // Add it to the Request
-      this._requests.push(requests);
+      this._requests.push(requests as GCSBaseRequest<GCSIRequestResponseArg>);
     } else {
       PCPDebugConsole.warn(this, 'uploadImage> You must signIn!');
     }
   }
 
-  deleteFile(fileId: string, onDeleteCallbackWithResponse: ICallback1<GCSRequest_DeleteFileResponse>) {
+  deleteFile(fileId: string, onDeleteCallbackWithResponse: IRCallback1<GCSRequest_DeleteFileResponse>) {
     if (this._isSignedIn) {
       const requests = new GCSRequest_DeleteFile(this);
       requests.request(
@@ -562,13 +573,13 @@ export class GoogleDriveProxy {
       );
 
       // Add it to the Request
-      this._requests.push(requests);
+      this._requests.push(requests as GCSBaseRequest<GCSIRequestResponseArg>);
     } else {
       PCPDebugConsole.warn(this, 'deleteFile> You must signIn!');
     }
   }
 
-  deleteFileFromFolder(fileName: string, folderId: string, onDeleteCallbackWithResponse: ICallback1<boolean>) {
+  deleteFileFromFolder(fileName: string, folderId: string, onDeleteCallbackWithResponse: IRCallback1<boolean>) {
     if (this._isSignedIn) {
       const requests = new GCSRequest_DeleteFileFromFolder(this);
       requests.request(
@@ -586,13 +597,13 @@ export class GoogleDriveProxy {
       );
 
       // Add it to the Request
-      this._requests.push(requests);
+      this._requests.push(requests as GCSBaseRequest<GCSIRequestResponseArg>);
     } else {
       PCPDebugConsole.warn(this, 'deleteFileFromFolder> You must signIn!');
     }
   }
 
-  getFile(fileId: string, onGetCallbackWithResponse: ICallback3<boolean, GCSRequest_GetFileResultParameter, any>, args?: any): GCSRequest_GetFile {
+  getFile(fileId: string, onGetCallbackWithResponse: IRCallback3<boolean, GCSRequest_GetFileResultParameter, any>, args?: any): GCSRequest_GetFile | null {
     if (this._isSignedIn) {
       const request = new GCSRequest_GetFile(this);
       request.request(

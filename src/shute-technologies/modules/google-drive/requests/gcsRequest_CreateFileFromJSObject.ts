@@ -1,6 +1,6 @@
 import { GoogleDriveProxy } from '../googleDriveProxy';
 import { GCSBaseRequest } from '../gcsBaseRequest';
-import { ICallback2 } from 'shute-technologies.common-and-utils';
+import { IRCallback2 } from 'shute-technologies.common-and-utils';
 import { GCSIRequestResponseArg } from './data/gcsIResquestResponseArg';
 import { GCSEnumMimeType } from '../enums/gcsEnumMimeTypes';
 
@@ -17,14 +17,14 @@ export interface GCSRequest_CFFJSOResultParameter {
   error: any;
 }
 
-export class GCSRequest_CreateFileFromJSObject extends GCSBaseRequest {
+export class GCSRequest_CreateFileFromJSObject extends GCSBaseRequest<GCSRequest_CFFJSOResponse> {
   private _arguments: any;
 
   constructor(private readonly _gcsUserDrive: GoogleDriveProxy) {
     super(_gcsUserDrive);
   }
 
-  request(fileName: string, parentFolder, jsObject: {}, onCallbackResponse: ICallback2<boolean, GCSRequest_CFFJSOResponse>, args): void {
+  request(fileName: string, parentFolder: string, jsObject: {}, onCallbackResponse: IRCallback2<boolean, GCSRequest_CFFJSOResponse>, args?: any): void {
     this._arguments = args;
     this._onCallbackResponse = onCallbackResponse;
 
@@ -58,7 +58,7 @@ export class GCSRequest_CreateFileFromJSObject extends GCSBaseRequest {
     const multipartRequestBody =
       delimiter + 'Content-Type: application/json\r\n\r\n' + JSON.stringify(metadata) + delimiter + 'Content-Type: ' + bodyType + '' + base64Data + close_delim;
 
-    const request = this._googleApi.client.request({
+    const request = this._googleApi.client.request<{ id: string }>({
       path: '/upload/drive/v3/files',
       method: 'POST',
       params: { uploadType: 'multipart' },
@@ -81,7 +81,7 @@ export class GCSRequest_CreateFileFromJSObject extends GCSBaseRequest {
     });
   }
 
-  destroy(): void {
+  override destroy(): void {
     this._arguments = null;
     super.destroy();
   }

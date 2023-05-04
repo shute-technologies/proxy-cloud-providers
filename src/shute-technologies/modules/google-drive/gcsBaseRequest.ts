@@ -1,16 +1,16 @@
 import { GoogleDriveProxy } from './googleDriveProxy';
 import { TIGoogleApi } from './typings-interfaces/ti-google-api';
 import { GCSIRequestResponseArg } from './requests/data/gcsIResquestResponseArg';
-import { ICallback2, STUtils } from 'shute-technologies.common-and-utils';
+import { IRCallback2, STUtils } from 'shute-technologies.common-and-utils';
 import { GenericCloudStorageRequestManager } from '../../helpers/genericCloudStorageRequestManager';
 
-export abstract class GCSBaseRequest {
+export abstract class GCSBaseRequest<IResponse extends GCSIRequestResponseArg> {
 
   protected _uid: string;
   protected _googleApi: TIGoogleApi;
-  protected _onCallbackResponse: ICallback2<boolean, GCSIRequestResponseArg>;
+  protected _onCallbackResponse: IRCallback2<boolean, IResponse> | undefined;
 
-  gcsReqManager: GenericCloudStorageRequestManager;
+  gcsReqManager: GenericCloudStorageRequestManager | undefined;
 
   get uid(): string { return this._uid; }
 
@@ -19,7 +19,7 @@ export abstract class GCSBaseRequest {
     this._googleApi = _abstractGCUserDrive.googleApi;
   }
 
-  abstract request(...args): void;
+  abstract request(...args: unknown[]): void;
 
   protected doFinishRequest(): void {
     // If have Request Manager then inform it finished
@@ -29,8 +29,7 @@ export abstract class GCSBaseRequest {
   }
 
   destroy(): void {
-    this._onCallbackResponse = null;
-    this.gcsReqManager = null;
-    this._uid = null;
+    this._onCallbackResponse = undefined;
+    this.gcsReqManager = undefined;
   }
 }
