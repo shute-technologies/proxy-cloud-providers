@@ -47,6 +47,7 @@ export class GoogleDriveProxy {
 
   get isSignedIn(): boolean { return this._isSignedIn; }
   get googleApi(): TIGoogleApi { return this._googleApi; }
+  get userToken(): TIGOATokenResponse { return this._userToken; }
   get userPersonalInfo(): GCSRequest_GPIResponseUser | undefined { return this._userPersonalInfo; }
   get userStorageQuota(): GCSRequest_GPIResponseStorageQuota | undefined { return this._userStorageQuota; }
 
