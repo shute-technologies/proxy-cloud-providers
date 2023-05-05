@@ -17,7 +17,7 @@ export class GCSConfig {
   static SFFQuery_AllFilesInFolder (folderId: string) {
     return {
       'pageSize': 1000, // max range [1-1000]
-      'fields': "nextPageToken, files(id, name, mimeType, parents, webContentLink)",
+      'fields': "nextPageToken, files(id, name, mimeType, parents, modifiedTime, webContentLink)",
       'orderBy': "folder",
       'q': "'" + folderId + "' in parents and trashed = false"
     };
