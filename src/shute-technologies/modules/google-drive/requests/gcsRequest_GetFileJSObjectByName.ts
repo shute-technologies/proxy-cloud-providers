@@ -17,12 +17,12 @@ export class GCSRequest_GetFileJSObjectByName extends GCSBaseRequest<GCSRequest_
     super(_gcsUserDrive);
   }
 
-  request(
+  request<TResponseObj>(
     fileName: string, 
     folderId: string, 
     onCallbackResponse: IRCallback2<boolean, GCSRequest_GFJSOBNResponse>,
     args: { 
-      callback?: IRCallback4<{}, string, string, any>; 
+      callback?: IRCallback4<TResponseObj, string, string, any>; 
       extraArgs?: { 
         callback: (arg0: null, arg1: any, arg2: any, arg3: any) => void;
       }; 

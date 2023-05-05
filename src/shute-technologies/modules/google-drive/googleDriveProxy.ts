@@ -297,10 +297,10 @@ export class GoogleDriveProxy {
     }
   }
 
-  getFileJSObjectByName(
+  getFileJSObjectByName<TResponseObj extends Object>(
     fileName: string,
     folderId: string,
-    onCallbackResult?: IRCallback4<{}, string, string, any>, 
+    onCallbackResult?: IRCallback4<TResponseObj, string, string, any>, 
     args?: { 
       callback: (arg0: null, arg1: any, arg2: any, arg3: any) => void;
     }
