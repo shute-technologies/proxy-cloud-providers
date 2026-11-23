@@ -25,4 +25,5 @@ export interface TIGOATokenClient {
 
 export interface TIGoogleOAuth2 {
   initTokenClient(params: TIGOAClientParameters): TIGOATokenClient;
+  revoke?(accessToken: string, done?: () => void): void;
 }

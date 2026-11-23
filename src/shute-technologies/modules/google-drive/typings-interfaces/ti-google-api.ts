@@ -3,10 +3,11 @@ import { ICallback1 } from "shute-technologies.common-and-utils";
 export interface TIGoogleApi {
   load(apiName: string, callback: any): void;
 
-  readonly auth2: TIGoogleApiAuth;
+  // No `auth2`: Google retired it and the proxy no longer loads it.
   readonly client: TIGoogleApiClient;
 }
 
+/** @deprecated gapi.auth2 is retired and no longer loaded. Kept for source compatibility. */
 export interface TIGoogleApiAuth {
   getAuthInstance(): TIGoogleApiAuthInstance;
 }
@@ -35,6 +36,7 @@ export interface TIGoogleApiClient {
   request<TArg>(arg: TIGoogleApiClientRequestArg): TIGoogleApiRequest<TArg>;
   drive: TIGoogleApiDrive;
   getToken(): unknown;
+  setToken(token: { access_token: string } | null): void;
 }
 
 export interface TIGoogleApiClientRequestArg {
@@ -54,6 +56,7 @@ export interface TIGoogleApiRequest<TArg> {
   then(response: (args: TArg) => void, errorResponse: (args: any) => void): void;
 }
 
+/** @deprecated gapi.auth2 is retired and no longer loaded. Kept for source compatibility. */
 export interface TIGoogleApiAuthInstance {
   readonly isSignedIn: TIGoogleApiListen;
   signIn(): void;

@@ -72,8 +72,9 @@ export class GoogleDriveProxy {
       callback: '', // defined later
     });
 
-    // reference the GAPI library
-    this._googleApi.load('client:auth2', () => this.initializeClient());
+    // `client` only. Google retired `auth2`: loading it logs a deprecation notice and COOP errors,
+    // and its auth instance no longer signs anyone in. Sign-in is the token client's job.
+    this._googleApi.load('client', () => this.initializeClient());
 
     PCPDebugConsole.log(this, 'Successful load of Google API.');
   }
@@ -81,8 +82,10 @@ export class GoogleDriveProxy {
   private initializeClient(): void {
     PCPDebugConsole.log(this, 'InitializeClient> Ok.');
 
+    // Discovery docs and the API key only: a clientId/scope here is what initialises auth2. The scopes
+    // go to the token client instead.
     const requests = new GCSRequest_ClientInitialize(this);
-    requests.request(this._appDiscoveryDocs, this._appApiKey, this._appScopes, (success: boolean, result) => {
+    requests.request(this._appDiscoveryDocs, this._appApiKey, (success: boolean, result) => {
       if (success) {
         (this._tokenClient as TIGOATokenClient).callback = async (resp: TIGOATokenResponse) => {
           this.onTokenClient(resp);
@@ -114,24 +117,33 @@ export class GoogleDriveProxy {
 
       PCPDebugConsole.log(this, 'initializeClient::tokenClient> Ok');
 
-      // Listen for sign-in state changes. [only listen]
-      // this._googleApi.auth2.getAuthInstance().isSignedIn.listen((isSignedIn: boolean) => this.updateSignInStatus(isSignedIn));
-      // Handle the initial sign-in state.
-      this.updateSignInStatus(true);
+      // Every Drive request reads the token from gapi.client; signs in unless already signed in.
+      this.setAccessToken(resp.access_token);
     }
   }
 
+  // Bookkeeping only, so it no longer depends on the sign-in state: the client-initialise request
+  // finishes before anyone is signed in, and used to stay in the list with a "You must signIn!!".
   clearRequest<T extends GCSIRequestResponseArg>(request: GCSBaseRequest<T>): void {
-    if (this._isSignedIn) {
-      for (let i = 0; i < this._requests.length; i++) {
-        if (this._requests[i].uid === request.uid) {
-          this._requests[i].destroy();
-          this._requests.splice(i, 1);
-          break;
-        }
+    for (let i = 0; i < this._requests.length; i++) {
+      if (this._requests[i].uid === request.uid) {
+        this._requests[i].destroy();
+        this._requests.splice(i, 1);
+        break;
       }
-    } else {
-      PCPDebugConsole.warn(this, 'clearRequest> You must signIn!!');
+    }
+  }
+
+  /**
+   * Hands gapi.client an OAuth access token, or null to sign out, and updates the sign-in state.
+   * The token client's response goes through here; a host page that signs in with its own Google
+   * Identity Services flow can call it directly. A renewed token does not re-run sign-in.
+   */
+  setAccessToken(accessToken: string | null): void {
+    this._googleApi.client.setToken(accessToken ? { access_token: accessToken } : null);
+
+    if (!!accessToken !== this._isSignedIn) {
+      this.updateSignInStatus(!!accessToken);
     }
   }
 
@@ -172,17 +184,28 @@ export class GoogleDriveProxy {
     }
   }
 
+  /** Asks the token client for an access token (call it from a user gesture: it may open a popup). */
   signIn(): void {
-    if (!this._isSignedIn) {
-      this._googleApi.auth2.getAuthInstance().signIn();
-    } else {
+    if (this._isSignedIn) {
       PCPDebugConsole.warn(this, 'signIn> You are already SignedIn!');
+    } else if (!this._tokenClient) {
+      PCPDebugConsole.warn(this, 'signIn> Call loadClient() first.');
+    } else {
+      this._tokenClient.requestAccessToken({ prompt: '' });
     }
   }
 
+  /** Revokes the access token with Google Identity Services and forgets it. */
   signOut(): void {
     if (this._isSignedIn) {
-      this._googleApi.auth2.getAuthInstance().signOut();
+      const accessToken = this._userToken?.access_token;
+
+      if (accessToken && this._googleOAuth2.revoke) {
+        this._googleOAuth2.revoke(accessToken, () => PCPDebugConsole.log(this, 'signOut> Token revoked.'));
+      }
+
+      this._userToken = undefined;
+      this.setAccessToken(null);
     } else {
       PCPDebugConsole.warn(this, 'signOut> You must signIn to signOut!');
     }
