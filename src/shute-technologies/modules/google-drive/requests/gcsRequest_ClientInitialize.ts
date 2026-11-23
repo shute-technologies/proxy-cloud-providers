@@ -13,15 +13,17 @@ export class GCSRequest_ClientInitialize extends GCSBaseRequest {
     super(_gcsUserDrive);
   }
 
-  request(discoveryDocs: string[], clientId: string, scope: string, onCallbackResponse: ICallback2<boolean, GCSRRArgClientInitialize>): void {
-    this._onCallbackResponse = onCallbackResponse;
+  request(discoveryDocs: string[], onCallbackResponse: ICallback2<boolean, GCSRRArgClientInitialize>): void;
+  /**
+   * @deprecated `clientId` and `scope` are ignored. Passing them to gapi.client.init initialises the
+   * retired gapi.auth2; sign in with Google Identity Services instead.
+   */
+  request(discoveryDocs: string[], clientId: string, scope: string, onCallbackResponse: ICallback2<boolean, GCSRRArgClientInitialize>): void;
+  request(discoveryDocs: string[], ...rest: any[]): void {
+    this._onCallbackResponse = rest[rest.length - 1];
 
     this._googleApi.client
-      .init({
-        discoveryDocs: discoveryDocs,
-        clientId: clientId,
-        scope: scope,
-      })
+      .init({ discoveryDocs })
       .then((response) => {
           if (this._onCallbackResponse) {
             this._onCallbackResponse(true, { response } as GCSRRArgClientInitialize);

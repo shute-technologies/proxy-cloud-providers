@@ -39,7 +39,10 @@ export class GoogleDriveProxy {
     this._isSignedIn = false;
 
     this._googleApi = gapi as any;
-    this._googleApi.load('client:auth2', () => this.initializeClient());
+    // `client` only. Google retired `auth2`: loading it logs a deprecation notice and COOP errors,
+    // and its auth instance no longer signs anyone in. Sign-in belongs to the host page (Google
+    // Identity Services), which hands the access token over with setAccessToken().
+    this._googleApi.load('client', () => this.initializeClient());
 
     PCPDebugConsole.log(this, 'Successful load of Google API.');
   }
@@ -47,15 +50,12 @@ export class GoogleDriveProxy {
   private initializeClient(): void {
     PCPDebugConsole.log(this, 'InitializeClient> Ok.');
 
+    // Discovery docs only: passing clientId/scope to gapi.client.init is what initialises auth2.
+    // The sign-in state changes when the host calls setAccessToken() / updateSignInStatus().
     const requests = new GCSRequest_ClientInitialize(this);
-    requests.request(GCSConfig.DISCOVERY_DOCS, GCSConfig.CLIENT_ID, GCSConfig.SCOPES, (success: boolean, result) => {
-      if (success) {
-        // Listen for sign-in state changes. [only listen]
-        this._googleApi.auth2.getAuthInstance().isSignedIn.listen((isSignedIn: boolean) => this.updateSignInStatus(isSignedIn));
-        // Handle the initial sign-in state.
-        this.updateSignInStatus(this._googleApi.auth2.getAuthInstance().isSignedIn.get() as any);
-      } else {
-        PCPDebugConsole.error(this, 'initializeClient> {0}', result.errorReason.details);
+    requests.request(GCSConfig.DISCOVERY_DOCS, (success: boolean, result) => {
+      if (!success) {
+        PCPDebugConsole.error(this, 'initializeClient> {0}', result.errorReason && result.errorReason.details);
       }
     });
 
@@ -63,17 +63,28 @@ export class GoogleDriveProxy {
     this._requests.push(requests);
   }
 
+  // Bookkeeping only, so it no longer depends on the sign-in state: the client-initialise request
+  // finishes before anyone is signed in, and used to stay in the list with a "You must signIn!!".
   clearRequest(request: GCSBaseRequest): void {
-    if (this._isSignedIn) {
-      for (let i = 0; i < this._requests.length; i++) {
-        if (this._requests[i].uid === request.uid) {
-          this._requests[i].destroy();
-          this._requests.splice(i, 1);
-          break;
-        }
+    for (let i = 0; i < this._requests.length; i++) {
+      if (this._requests[i].uid === request.uid) {
+        this._requests[i].destroy();
+        this._requests.splice(i, 1);
+        break;
       }
-    } else {
-      PCPDebugConsole.warn(this, 'clearRequest> You must signIn!!');
+    }
+  }
+
+  /**
+   * Hands the proxy an OAuth access token the host page obtained, e.g. from a Google Identity
+   * Services token client (`google.accounts.oauth2.initTokenClient`), or null to sign out. Every
+   * Drive request reads the token from gapi.client. A renewed token does not re-run sign-in.
+   */
+  setAccessToken(accessToken: string | null): void {
+    this._googleApi.client.setToken(accessToken ? { access_token: accessToken } : null);
+
+    if (!!accessToken !== this._isSignedIn) {
+      this.updateSignInStatus(!!accessToken);
     }
   }
 
@@ -114,17 +125,22 @@ export class GoogleDriveProxy {
     }
   }
 
+  /**
+   * @deprecated gapi.auth2 is retired, so the proxy cannot sign anyone in. Sign in with Google
+   * Identity Services in the host page and pass the access token to setAccessToken().
+   */
   signIn(): void {
     if (!this._isSignedIn) {
-      this._googleApi.auth2.getAuthInstance().signIn();
+      PCPDebugConsole.warn(this, 'signIn> gapi.auth2 is retired: sign in with Google Identity Services and call setAccessToken(token).');
     } else {
       PCPDebugConsole.warn(this, 'signIn> You are already SignedIn!');
     }
   }
 
+  /** Forgets the access token. Revoking it is the host's job (`google.accounts.oauth2.revoke`). */
   signOut(): void {
     if (this._isSignedIn) {
-      this._googleApi.auth2.getAuthInstance().signOut();
+      this.setAccessToken(null);
     } else {
       PCPDebugConsole.warn(this, 'signOut> You must signIn to signOut!');
     }

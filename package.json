@@ -9,7 +9,8 @@
     "lib/**/*"
   ],
   "scripts": {
-    "build": "tsc --build --verbose"
+    "build": "tsc --build --verbose",
+    "test": "tsc && node --test test/*.test.js"
   },
   "repository": {
     "type": "git",
